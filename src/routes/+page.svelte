@@ -1,18 +1,20 @@
 <script>
-	import Row from '$lib/components/row.svelte';
+	import CardsGrid from '$lib/components/cards-grid.svelte';
 	import Column from '$lib/components/column.svelte';
 	import Card from '$lib/components/card.svelte';
+
+	export let data;
 </script>
 
 <h1>Welcome to Droplet Tools</h1>
 <p>A one-click solution to deploy pre-configured Droplets to Digital Ocean.</p>
-<Row>
-	<Column>
-		<Card link={{ href: '/ubuntu', text: 'Details' }}>
-			<svelte:fragment slot="title">Ubuntu with Docker</svelte:fragment>
-			<svelte:fragment slot="text"
-				>Deploy a simple Ubuntu 23.04 Droplet with Docker installed.</svelte:fragment
-			>
-		</Card>
-	</Column>
-</Row>
+<CardsGrid>
+	{#each data.templates as template}
+		<Column>
+			<Card link={{ href: `/templates/${template.id}`, text: 'Details' }}>
+				<svelte:fragment slot="title">{template.title}</svelte:fragment>
+				<svelte:fragment slot="text">{template.description}</svelte:fragment>
+			</Card>
+		</Column>
+	{/each}
+</CardsGrid>
