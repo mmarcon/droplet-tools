@@ -1,5 +1,7 @@
 export const DO_REGIONS = 'https://api.digitalocean.com/v2/regions';
 export const DO_SIZES = 'https://api.digitalocean.com/v2/sizes?per_page=150';
+export const DO_IMAGES = 'https://api.digitalocean.com/v2/images?type=distribution&per_page=150';
+
 export type Region = {
   slug: string;
   name: string;
@@ -27,4 +29,14 @@ export type Droplet = {
   image: string;
   user_data: string;
   tags: string[];
+};
+
+export type Image = {
+  name: string;
+  distribution: string;
+  description: string;
+  slug: string;
+  public: boolean;
+  regions: string[];
+  created_at: string;
 };

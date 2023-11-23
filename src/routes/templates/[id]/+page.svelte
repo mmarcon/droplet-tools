@@ -1,31 +1,52 @@
 <script lang="ts">
 	import Code from '$lib/components/code.svelte';
 	import Alert from '$lib/components/alert.svelte';
+	import Spinner from '$lib/components/spinner.svelte';
+	import Button from '$lib/components/button.svelte';
 
 	import { onMount } from 'svelte';
 	import { settings } from '$lib/stores/settings.store';
 
-	import type { Region, Size, Droplet } from '$lib/do';
-	import { DO_REGIONS, DO_SIZES } from '$lib/do';
+	import type { Region, Size, Droplet, Image } from '$lib/do';
+	import { DO_REGIONS, DO_SIZES, DO_IMAGES } from '$lib/do';
 	import Column from '$lib/components/column.svelte';
 	import Row from '$lib/components/row.svelte';
 
+	export let data;
+
 	let doRegions: Region[] = [];
 	let doSizes: Size[] = [];
+	let doImages: Image[] = [];
+
+	let currentImage: Image | undefined;
 
 	let dropletInfo: Droplet = {
 		name: '',
 		region: '',
 		size: '',
-		image: '',
-		user_data: '',
+		image: data.template.image,
+		user_data: data.template.bootstrap,
 		tags: ['droplet-tools']
 	};
+
+	$: readyToCreate = !!dropletInfo.name && !!dropletInfo.region && !!dropletInfo.size;
 
 	onMount(async () => {
 		if (!$settings.doToken) {
 			return;
 		}
+
+		doImages = await fetch(DO_IMAGES, {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${$settings.doToken}`
+			}
+		})
+			.then((response) => response.json())
+			.then(({ images }) => (doImages = images.filter((image: Image) => image.public)));
+
+		currentImage = doImages.find((image) => image.slug === data.template.image);
 
 		doRegions = await fetch(DO_REGIONS, {
 			method: 'GET',
@@ -35,7 +56,7 @@
 			}
 		})
 			.then((response) => response.json())
-			.then(({ regions }) => regions.filter((region: Region) => region.available));
+			.then(({ regions }) => regions.filter((region: Region) => region.available && currentImage?.regions.includes(region.slug)));
 
 		doSizes = await fetch(DO_SIZES, {
 			method: 'GET',
@@ -47,6 +68,7 @@
 			.then((response) => response.json())
 			.then(({ sizes }) => (doSizes = sizes));
 
+
 		dropletInfo.region = doRegions[0].slug;
 		dropletInfo.size = doSizes[0].slug;
 	});
@@ -55,12 +77,16 @@
 		const { description, price_hourly } = doSizes.find((s) => s.slug === sizeSlug) || {};
 		return `${description} - $${price_hourly}/hour`;
 	}
-
-	export let data;
 </script>
 
 <h1>{data.template.title}</h1>
 <p>{data.template.description}</p>
+<h2>Image</h2>
+{#if currentImage}
+	<p>{currentImage?.description}</p>
+{:else}
+	<Spinner/>
+{/if}
 <h2>Bootstrap Script</h2>
 <Code>
 	{data.template.bootstrap}
@@ -96,6 +122,11 @@
 						{/each}
 					{/if}
 				</select>
+			</Column>
+		</Row>
+		<Row>
+			<Column>
+				<Button style="primary" disabled={!readyToCreate}>Deploy</Button>
 			</Column>
 		</Row>
 	</form>

@@ -2,8 +2,9 @@ import { writable } from 'svelte/store'
 import { browser } from '$app/environment';
 
 
-interface Settings {
-  doToken: string
+type Settings = {
+  doToken: string,
+  defaultRootPassword?: string
 }
 
 let settingsObj: Settings = {

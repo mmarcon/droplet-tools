@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import Column from '$lib/components/column.svelte';
   import Row from '$lib/components/row.svelte';
   import { settings } from '$lib/stores/settings.store';
