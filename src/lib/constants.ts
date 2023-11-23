@@ -1,1 +1,0 @@
-export const DO_REGIONS = 'https://api.digitalocean.com/v2/regions';

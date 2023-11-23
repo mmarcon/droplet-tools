@@ -1,48 +1,107 @@
 <script lang="ts">
-  import Code from '$lib/components/code.svelte';
-  import Alert from '$lib/components/alert.svelte';
+	import Code from '$lib/components/code.svelte';
+	import Alert from '$lib/components/alert.svelte';
 
-  import { onMount } from 'svelte';
-  import { DO_REGIONS } from '$lib/constants';
-  import { settings } from '$lib/stores/settings.store';
-  import type { Region } from '$lib/do';
+	import { onMount } from 'svelte';
+	import { settings } from '$lib/stores/settings.store';
 
-  let doRegions: Region[] = [];
+	import type { Region, Size, Droplet } from '$lib/do';
+	import { DO_REGIONS, DO_SIZES } from '$lib/do';
+	import Column from '$lib/components/column.svelte';
+	import Row from '$lib/components/row.svelte';
 
-  onMount(async () => {
-    if (!$settings.doToken) {
-      return;
-    }
+	let doRegions: Region[] = [];
+	let doSizes: Size[] = [];
 
-    doRegions = await fetch(DO_REGIONS, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${$settings.doToken}`
-      }
-    })
-      .then((response) => response.json())
-      .then((data) => data.regions.filter((region : Region) => region.available));
-  });
+	let dropletInfo: Droplet = {
+		name: '',
+		region: '',
+		size: '',
+		image: '',
+		user_data: '',
+		tags: ['droplet-tools']
+	};
 
-  export let data;
+	onMount(async () => {
+		if (!$settings.doToken) {
+			return;
+		}
+
+		doRegions = await fetch(DO_REGIONS, {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${$settings.doToken}`
+			}
+		})
+			.then((response) => response.json())
+			.then(({ regions }) => regions.filter((region: Region) => region.available));
+
+		doSizes = await fetch(DO_SIZES, {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${$settings.doToken}`
+			}
+		})
+			.then((response) => response.json())
+			.then(({ sizes }) => (doSizes = sizes));
+
+		dropletInfo.region = doRegions[0].slug;
+		dropletInfo.size = doSizes[0].slug;
+	});
+
+	function getSizeInfo(sizeSlug: string) {
+		const { description, price_hourly } = doSizes.find((s) => s.slug === sizeSlug) || {};
+		return `${description} - $${price_hourly}/hour`;
+	}
+
+	export let data;
 </script>
 
 <h1>{data.template.title}</h1>
 <p>{data.template.description}</p>
 <h2>Bootstrap Script</h2>
 <Code>
-{data.template.bootstrap}
+	{data.template.bootstrap}
 </Code>
-<h2>
-  Deployment Configuration
-</h2>
+<h2>Deployment Configuration</h2>
 {#if $settings.doToken}
-  <Code>
-    {JSON.stringify(doRegions, null, 2)}
-  </Code>  
+	<form>
+		<Row>
+			<Column>
+				<label for="name" class="form-label">Droplet Name</label>
+				<input type="text" class="form-control" id="name" placeholder="My Droplet" bind:value={dropletInfo.name}/>
+			</Column>
+		</Row>
+		<Row>
+			<Column>
+				<label for="region" class="form-label">Region</label>
+				<select class="form-select" bind:value={dropletInfo.region} id="region">
+					{#each doRegions as region}
+						<option value={region.slug}>{region.name}</option>
+					{/each}
+				</select>
+			</Column>
+		</Row>
+		<Row>
+			<Column>
+				<label for="size" class="form-label">Droplet Size</label>
+				<select class="form-select" id="size" bind:value={dropletInfo.size}>
+					{#if !dropletInfo.region}
+						<option selected disabled>Please select a region</option>
+					{:else}
+						{#each doRegions.filter((region) => region.slug === dropletInfo.region)[0].sizes || [] as size}
+							<option value={size}>{getSizeInfo(size)}</option>
+						{/each}
+					{/if}
+				</select>
+			</Column>
+		</Row>
+	</form>
+	<Code>
+		{JSON.stringify(dropletInfo, null, 2)}
+	</Code>
 {:else}
-  <Alert type="warning">
-    Please set your Digital Ocean token in the settings.
-  </Alert>
+	<Alert type="warning">Please set your Digital Ocean token in the settings.</Alert>
 {/if}
